@@ -1,0 +1,204 @@
+package com.example.visa.recon.service;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.example.visa.recon.model.dto.VisaBase2Record;
+
+/**
+ * Stream records from file for parallel processing
+ * @param filePath path to the file
+ * @return Stream<Record>
+ */
+public class FileReader {
+    private static final Logger logger = LoggerFactory.getLogger(FileReader.class);
+
+    public Stream<VisaBase2Record> streamRecords(String filePath) {
+        logger.info("Starting to stream records from file: {}", filePath);
+        try {
+            BufferedReader reader = Files.newBufferedReader(Paths.get(filePath));
+            return reader.lines()
+                        .skip(1)  // Skip header if exists
+                        .filter(line -> !line.trim().isEmpty())
+                        .map(this::parseRecord)
+                        .onClose(() -> {
+                            try {
+                                reader.close();
+                                logger.debug("File reader closed successfully");
+                            } catch (IOException e) {
+                                logger.error("Error closing file reader", e);
+                                throw new RuntimeException(e);
+                            }
+                        });
+        } catch (IOException e) {
+            logger.error("Error streaming file: {}", filePath, e);
+            throw new RuntimeException("Error streaming file: " + filePath, e);
+        }
+    }
+
+    /**
+     * Parse a line into a Record object
+     * Modify this method according to your file format (CSV, fixed-width, etc.)
+     */
+    private VisaBase2Record parseRecord(String line) {
+        try {
+            String[] fields = line.split(",");
+            if (fields.length < 40) {
+                logger.error("Invalid record format: {}", line);
+                throw new IllegalArgumentException("Invalid record format: " + line);
+            }
+            VisaBase2Record record = new VisaBase2Record(
+                fields[0].trim(),
+                fields[1].trim(),
+                fields[2].trim(),
+                fields[3].trim(),
+                fields[4].trim(),
+                fields[5].trim(),
+                fields[6].trim(),
+                fields[7].trim(),
+                fields[8].trim(),
+                fields[9].trim(),
+                fields[10].trim(),
+                fields[11].trim(),
+                fields[12].trim(),
+                fields[13].trim(),
+                fields[14].trim(),
+                fields[15].trim(),
+                fields[16].trim(),
+                fields[17].trim(),
+                fields[18].trim(),
+                fields[19].trim(),
+                fields[20].trim(),
+                fields[21].trim(),
+                fields[22].trim(),
+                fields[23].trim(),
+                fields[24].trim(),
+                fields[25].trim(),
+                fields[26].trim(),
+                fields[27].trim(),
+                fields[28].trim(),
+                fields[29].trim(),
+                fields[30].trim(),
+                fields[31].trim(),
+                fields[32].trim(),
+                fields[33].trim(),
+                fields[34].trim(),
+                fields[35].trim(),
+                fields[36].trim(),
+                fields[37].trim(),
+                fields[38].trim(),
+                fields[39].trim(),
+                fields[40].trim(), 
+                fields[41].trim()
+            );
+            logger.trace("Successfully parsed record with ID: {}", record.getTransactionId());
+            return record;
+        } catch (Exception e) {
+            logger.error("Error parsing record: {}", line, e);
+            return null;
+        }
+    }
+
+    // Method 1: Process records one by one
+    public void processLargeFile(String filePath, Consumer<VisaBase2Record> recordProcessor) {
+        logger.info("Starting sequential processing of file: {}", filePath);
+        long startTime = System.currentTimeMillis();
+        final AtomicInteger recordCount = new AtomicInteger(0);
+
+        try (BufferedReader reader = Files.newBufferedReader(Paths.get(filePath))) {
+            reader.lines()
+                 .skip(1)  // Skip header if exists
+                 .filter(line -> !line.trim().isEmpty())
+                 .map(this::parseRecord)
+                 .forEach(record -> {
+                     recordProcessor.accept(record);
+                     int count = recordCount.incrementAndGet();
+                     if (count % 1000 == 0) {
+                         logger.debug("Processed {} records", count);
+                     }
+                 });
+        } catch (IOException e) {
+            logger.error("Error processing file: {}", filePath, e);
+            throw new RuntimeException("Error processing file: " + filePath, e);
+        }
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Completed processing {} records in {} ms", 
+            recordCount.get(), (endTime - startTime));
+    }
+
+    // Method 2: Parallel processing using streams
+    public void processLargeFileParallel(String filePath, Consumer<VisaBase2Record> recordProcessor) {
+        logger.info("Starting parallel processing of file: {}", filePath);
+        long startTime = System.currentTimeMillis();
+        final AtomicInteger recordCount = new AtomicInteger(0);
+
+        streamRecords(filePath)
+            .parallel()
+            .forEach(record -> {
+                recordProcessor.accept(record);
+                int count = recordCount.incrementAndGet();
+                if (count % 1000 == 0) {
+                    logger.debug("Processed {} records", count);
+                }
+            });
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Completed parallel processing of {} records in {} ms", 
+            recordCount.get(), (endTime - startTime));
+    }
+
+    // Method 3: Collect specific fields or perform aggregations
+    public List<String> collectField1Values(String filePath) {
+        logger.info("Collecting transaction IDs from file: {}", filePath);
+        long startTime = System.currentTimeMillis();
+
+        List<String> result = streamRecords(filePath)
+            .map(record -> record.getTransactionId())
+            .collect(Collectors.toList());
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Collected {} transaction IDs in {} ms", 
+            result.size(), (endTime - startTime));
+        return result;
+    }
+
+    public void processByBatch(String filePath, int batchSize, Consumer<List<VisaBase2Record>> batchProcessor) {
+        logger.info("Starting batch processing of file: {} with batch size: {}", filePath, batchSize);
+        long startTime = System.currentTimeMillis();
+        final AtomicInteger batchCount = new AtomicInteger(0);
+
+        try (BufferedReader reader = Files.newBufferedReader(Paths.get(filePath))) {
+            reader.lines()
+                 .skip(1)
+                 .filter(line -> !line.trim().isEmpty())
+                 .map(this::parseRecord)
+                 .collect(Collectors.groupingBy(record -> 
+                     ThreadLocalRandom.current().nextInt(batchSize)))
+                 .values()
+                 .forEach(batch -> {
+                     batchProcessor.accept(batch);
+                     int count = batchCount.incrementAndGet();
+                     logger.debug("Processed batch {} with {} records", count, batch.size());
+                 });
+        } catch (IOException e) {
+            logger.error("Error processing file in batches: {}", filePath, e);
+            throw new RuntimeException("Error processing file: " + filePath, e);
+        }
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Completed batch processing of {} batches in {} ms", 
+            batchCount.get(), (endTime - startTime));
+    }
+}
