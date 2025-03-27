@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.example.visa</groupId>
-	<artifactId>dataingestion</artifactId>
+	<artifactId>reconciliation</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>dataingestion</name>
-	<description>Demo project for dataingestion</description>
+	<name>reconciliation</name>
+	<description>Demo project for reconciliation</description>
 	<url/>
 	<licenses>
 		<license/>

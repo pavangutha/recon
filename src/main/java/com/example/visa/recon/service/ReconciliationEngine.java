@@ -9,6 +9,11 @@ import org.slf4j.LoggerFactory;
 
 import com.example.visa.recon.model.dto.VisaBase2Record;
 
+/**
+ * Core engine responsible for reconciling transactions between switch and network systems.
+ * This class handles the comparison of transactions and detection of discrepancies.
+ * It uses parallel processing for efficient handling of large transaction sets.
+ */
 public class ReconciliationEngine {
     private static final Logger logger = LoggerFactory.getLogger(ReconciliationEngine.class);
 
@@ -18,6 +23,12 @@ public class ReconciliationEngine {
     // List of transactions from network (Visa/RuPay)
     private List<VisaBase2Record> networkTransactions;
 
+    /**
+     * Initializes the ReconciliationEngine with switch and network transactions.
+     * 
+     * @param switchTransactions List of transactions from the switch system
+     * @param networkTransactions List of transactions from the network (Visa/RuPay)
+     */
     public ReconciliationEngine(List<VisaBase2Record> switchTransactions, List<VisaBase2Record> networkTransactions) {
         this.switchTransactions = switchTransactions;
         this.networkTransactions = networkTransactions;
@@ -25,14 +36,30 @@ public class ReconciliationEngine {
             switchTransactions.size(), networkTransactions.size());
     }
 
+    /**
+     * Retrieves the list of switch transactions.
+     * 
+     * @return List of switch transactions
+     */
     public List<VisaBase2Record> getSwitchTransactions() {
         return switchTransactions;
     }
 
+    /**
+     * Retrieves the list of network transactions.
+     * 
+     * @return List of network transactions
+     */
     public List<VisaBase2Record> getNetworkTransactions() {
         return networkTransactions;
     }
 
+    /**
+     * Performs the reconciliation process by comparing switch transactions with network transactions.
+     * Uses parallel processing for efficient comparison of large transaction sets.
+     * 
+     * @return List of discrepancies found during reconciliation
+     */
     public List<Discrepancy> reconcile() {
         logger.info("Starting reconciliation process");
         long startTime = System.currentTimeMillis();
@@ -50,6 +77,12 @@ public class ReconciliationEngine {
         return discrepancies;
     }
 
+    /**
+     * Compares a single switch transaction with network transactions to find matches and discrepancies.
+     * 
+     * @param switchTx The switch transaction to compare
+     * @return Discrepancy object if a discrepancy is found, null otherwise
+     */
     private Discrepancy compareTransactionWithNetwork(VisaBase2Record switchTx) {
         logger.debug("Comparing switch transaction {} with network transactions", switchTx.getTransactionId());
         return networkTransactions.parallelStream()
@@ -62,6 +95,14 @@ public class ReconciliationEngine {
                 });
     }
 
+    /**
+     * Detects discrepancies between a switch transaction and its matching network transaction.
+     * Currently checks for amount mismatches, but can be extended to check other fields.
+     * 
+     * @param switchTx The switch transaction
+     * @param networkTx The matching network transaction
+     * @return Discrepancy object if a discrepancy is found, null otherwise
+     */
     private Discrepancy detectDiscrepancy(VisaBase2Record switchTx, VisaBase2Record networkTx) {
         if (!switchTx.getAmount().equals(networkTx.getAmount())) {
             logger.warn("Amount mismatch detected for transaction {}: Switch={}, Network={}", 

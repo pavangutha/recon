@@ -17,12 +17,18 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Service responsible for matching transactions between different systems.
+ * Provides both exact and fuzzy matching capabilities with configurable tolerance levels.
+ * Uses a scoring system to determine the best matches when exact matches are not found.
+ */
 @Slf4j
 @Service
 public class TransactionMatcher {
 
     /**
-     * Represents a matched pair of transactions
+     * Represents a matched pair of transactions with their match score.
+     * Used to store the results of transaction matching operations.
      */
     @Data
     @AllArgsConstructor
@@ -33,7 +39,11 @@ public class TransactionMatcher {
     }
 
     /**
-     * Creates a unique hash key for a transaction based on its attributes
+     * Creates a unique hash key for a transaction based on its attributes.
+     * Used for exact matching of transactions.
+     * 
+     * @param transaction The transaction to create a key for
+     * @return A unique string key combining transaction ID, timestamp, and amount
      */
     private String createMatchingKey(VisaBase2Record transaction) {
         return String.format("%s_%s_%d",
@@ -44,7 +54,12 @@ public class TransactionMatcher {
     }
 
     /**
-     * Match transactions using exact matching based on hash
+     * Performs exact matching of transactions based on their hash keys.
+     * This method is faster than fuzzy matching but requires exact matches.
+     * 
+     * @param sourceTransactions List of transactions from the source system
+     * @param targetTransactions List of transactions from the target system
+     * @return List of matched transaction pairs
      */
     public List<MatchedPair> findExactMatches(List<VisaBase2Record> sourceTransactions, 
                                              List<VisaBase2Record> targetTransactions) {
@@ -55,7 +70,7 @@ public class TransactionMatcher {
         Map<String, VisaBase2Record> targetMap = new HashMap<>();
         List<MatchedPair> matches = new ArrayList<>();
 
-        // Create hash map of target transactions
+        // Create hash map of target transactions for O(1) lookup
         for (VisaBase2Record target : targetTransactions) {
             targetMap.put(createMatchingKey(target), target);
         }
@@ -78,7 +93,14 @@ public class TransactionMatcher {
     }
 
     /**
-     * Match transactions using fuzzy matching with configurable tolerance
+     * Performs fuzzy matching of transactions with configurable tolerance levels.
+     * Uses a scoring system to find the best matches when exact matches are not found.
+     * 
+     * @param sourceTransactions List of transactions from the source system
+     * @param targetTransactions List of transactions from the target system
+     * @param timeToleranceMinutes Maximum allowed time difference in minutes
+     * @param amountTolerancePercent Maximum allowed amount difference as percentage
+     * @return List of matched transaction pairs with their match scores
      */
     public List<MatchedPair> findFuzzyMatches(List<VisaBase2Record> sourceTransactions, 
                                              List<VisaBase2Record> targetTransactions,
@@ -134,7 +156,17 @@ public class TransactionMatcher {
     }
 
     /**
-     * Calculate match score between two transactions
+     * Calculates a match score between two transactions based on multiple criteria.
+     * The score is weighted as follows:
+     * - Transaction ID match: 30%
+     * - Time match: 35%
+     * - Amount match: 35%
+     * 
+     * @param source The source transaction
+     * @param target The target transaction
+     * @param timeToleranceMinutes Maximum allowed time difference in minutes
+     * @param amountTolerancePercent Maximum allowed amount difference as percentage
+     * @return Match score between 0.0 and 1.0
      */
     private double calculateMatchScore(VisaBase2Record source, 
                                      VisaBase2Record target,
@@ -171,7 +203,10 @@ public class TransactionMatcher {
     }
 
     /**
-     * Generate match report
+     * Generates a detailed report of matched transactions.
+     * 
+     * @param matches List of matched transaction pairs
+     * @return Formatted report string
      */
     public String generateMatchReport(List<MatchedPair> matches) {
         log.info("Generating match report for {} matched pairs", matches.size());

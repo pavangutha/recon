@@ -17,13 +17,24 @@ import org.slf4j.LoggerFactory;
 import com.example.visa.recon.model.dto.VisaBase2Record;
 
 /**
- * Stream records from file for parallel processing
- * @param filePath path to the file
- * @return Stream<Record>
+ * Service responsible for reading and processing transaction files.
+ * Provides multiple methods for handling large files efficiently:
+ * - Streaming records for memory-efficient processing
+ * - Sequential processing for simple operations
+ * - Parallel processing for improved performance
+ * - Batch processing for database operations
  */
 public class FileReader {
     private static final Logger logger = LoggerFactory.getLogger(FileReader.class);
 
+    /**
+     * Streams records from a file for memory-efficient processing.
+     * Skips the header row and filters out empty lines.
+     * 
+     * @param filePath Path to the file to read
+     * @return Stream of parsed VisaBase2Record objects
+     * @throws RuntimeException if file cannot be read or closed
+     */
     public Stream<VisaBase2Record> streamRecords(String filePath) {
         logger.info("Starting to stream records from file: {}", filePath);
         try {
@@ -48,8 +59,11 @@ public class FileReader {
     }
 
     /**
-     * Parse a line into a Record object
-     * Modify this method according to your file format (CSV, fixed-width, etc.)
+     * Parses a CSV line into a VisaBase2Record object.
+     * Expects a comma-separated string with at least 42 fields.
+     * 
+     * @param line The CSV line to parse
+     * @return Parsed VisaBase2Record object, or null if parsing fails
      */
     private VisaBase2Record parseRecord(String line) {
         try {
@@ -110,7 +124,14 @@ public class FileReader {
         }
     }
 
-    // Method 1: Process records one by one
+    /**
+     * Processes a large file sequentially, applying a consumer to each record.
+     * Suitable for operations that need to be performed in order.
+     * 
+     * @param filePath Path to the file to process
+     * @param recordProcessor Consumer to process each record
+     * @throws RuntimeException if file cannot be read
+     */
     public void processLargeFile(String filePath, Consumer<VisaBase2Record> recordProcessor) {
         logger.info("Starting sequential processing of file: {}", filePath);
         long startTime = System.currentTimeMillis();
@@ -138,7 +159,13 @@ public class FileReader {
             recordCount.get(), (endTime - startTime));
     }
 
-    // Method 2: Parallel processing using streams
+    /**
+     * Processes a large file in parallel using Java streams.
+     * Suitable for operations that can be performed independently.
+     * 
+     * @param filePath Path to the file to process
+     * @param recordProcessor Consumer to process each record
+     */
     public void processLargeFileParallel(String filePath, Consumer<VisaBase2Record> recordProcessor) {
         logger.info("Starting parallel processing of file: {}", filePath);
         long startTime = System.currentTimeMillis();
@@ -159,7 +186,13 @@ public class FileReader {
             recordCount.get(), (endTime - startTime));
     }
 
-    // Method 3: Collect specific fields or perform aggregations
+    /**
+     * Collects transaction IDs from a file.
+     * Useful for quick validation or indexing operations.
+     * 
+     * @param filePath Path to the file to process
+     * @return List of transaction IDs
+     */
     public List<String> collectField1Values(String filePath) {
         logger.info("Collecting transaction IDs from file: {}", filePath);
         long startTime = System.currentTimeMillis();
@@ -174,6 +207,15 @@ public class FileReader {
         return result;
     }
 
+    /**
+     * Processes a file in batches, grouping records for efficient processing.
+     * Suitable for database operations or other batch-oriented tasks.
+     * 
+     * @param filePath Path to the file to process
+     * @param batchSize Size of each batch
+     * @param batchProcessor Consumer to process each batch of records
+     * @throws RuntimeException if file cannot be read
+     */
     public void processByBatch(String filePath, int batchSize, Consumer<List<VisaBase2Record>> batchProcessor) {
         logger.info("Starting batch processing of file: {} with batch size: {}", filePath, batchSize);
         long startTime = System.currentTimeMillis();
