@@ -24,7 +24,7 @@ public class DbToFileReconciliationProcessor implements ItemProcessor<VisaBase2R
         VisaBase2Record dto = mapper.toDto(entity);
         
         // Check if record exists in file
-        String filePath = "path/to/your/input/file.csv"; // This should be configurable
+        String filePath = "visa_base2_transactions.csv"; // This should be configurable
         boolean existsInFile = fileReader.streamRecords(filePath)
             .anyMatch(record -> record.getTransactionId().equals(dto.getTransactionId()));
             
