@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import com.example.visa.recon.model.dto.VisaBase2Record;
 
@@ -14,6 +15,7 @@ import com.example.visa.recon.model.dto.VisaBase2Record;
  * This class handles the comparison of transactions and detection of discrepancies.
  * It uses parallel processing for efficient handling of large transaction sets.
  */
+@Service
 public class ReconciliationEngine {
     private static final Logger logger = LoggerFactory.getLogger(ReconciliationEngine.class);
 

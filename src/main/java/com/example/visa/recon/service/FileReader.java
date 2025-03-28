@@ -13,6 +13,7 @@ import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import com.example.visa.recon.model.dto.VisaBase2Record;
 
@@ -24,6 +25,7 @@ import com.example.visa.recon.model.dto.VisaBase2Record;
  * - Parallel processing for improved performance
  * - Batch processing for database operations
  */
+@Service
 public class FileReader {
     private static final Logger logger = LoggerFactory.getLogger(FileReader.class);
 
