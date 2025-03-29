@@ -1,158 +1,224 @@
-# Visa Transaction Reconciliation System
+# Visa Reconciliation System
 
-A Spring Boot application for reconciling transactions between switch and network systems (Visa/RuPay). This system provides automated reconciliation capabilities with support for both file-based and database-based transaction processing.
+A high-performance Spring Boot application for reconciling Visa transaction records between file and database systems.
 
 ## Features
 
-- **Batch Processing**: Efficiently process large transaction files using Spring Batch
-- **Transaction Matching**: 
-  - Exact matching based on transaction IDs
-  - Fuzzy matching with configurable tolerance levels
-  - Parallel processing for improved performance
-- **File Processing**:
-  - CSV file generation with configurable record counts
-  - Support for large file processing with streaming
-  - Batch processing with memory-efficient operations
-- **Discrepancy Detection**:
-  - Amount mismatches
-  - Missing transactions
-  - Customizable discrepancy types
-- **Reporting**:
-  - Detailed reconciliation reports
-  - Summary statistics
-  - Transaction matching reports
+- Two-way reconciliation between file and database records
+- Batch processing with optimized performance
+- Parallel processing with configurable thread pools
+- Automated scheduling of reconciliation jobs
+- Comprehensive discrepancy reporting in Excel format
+- Performance monitoring and statistics
+- Configurable batch sizes and processing parameters
 
-## Prerequisites
+## Performance Optimizations
 
-- Java 17 or higher
-- Maven 3.6 or higher
-- MySQL 8.0 or higher
+### Parallel Processing
+- Parallel streams for file record processing
+- Concurrent database record processing
+- Thread pool configuration for async operations
+- Optimized batch processing with parallel streams
+
+### Database Optimizations
+- Hibernate batch processing
+- Ordered inserts and updates
+- Batch versioning
+- SQL query optimization
+- Statistics generation for monitoring
+
+### Memory Management
+- Thread-safe collections (ConcurrentHashMap, CopyOnWriteArrayList)
+- Optimized object creation
+- Efficient batch processing
+- Memory-mapped file support
+
+## Technical Stack
+
+- Java 17
 - Spring Boot 3.x
+- Spring Batch
+- Spring Data JPA
+- MySQL 8.x
+- Apache POI (Excel reporting)
+- Lombok
+- SLF4J for logging
 
 ## Configuration
 
-The application can be configured through `application.yml`:
+### Application Properties
 
 ```yaml
+reconciliation:
+  file:
+    path: ${RECONCILIATION_FILE_PATH:/path/to/input/file.csv}
+  report:
+    path: ${RECONCILIATION_REPORT_PATH:/path/to/output/report.xlsx}
+  batch:
+    size: 1000
+  schedule:
+    enabled: true
+    cron: "0 0 1 * * ?"  # Run at 1 AM daily
+  thread-pool:
+    core-size: 4
+    max-size: 8
+    queue-capacity: 100
+
 spring:
   datasource:
     url: jdbc:mysql://localhost:3306/visa_recon
     username: root
     password: root
-    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
-  batch:
-    jdbc:
-      initialize-schema: always
-    job:
-      enabled: true
-
-reconciliation:
-  input:
-    file: /path/to/input/file.csv
-  output:
-    file: /path/to/output/file.csv
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 100
+          batch_versioned_data: true
+        order_inserts: true
+        order_updates: true
 ```
 
-## Database Schema
+### Thread Pool Configuration
+- Core Pool Size: Number of threads to keep alive even when idle
+- Max Pool Size: Maximum number of threads to create
+- Queue Capacity: Size of the queue for holding tasks before they are executed
 
-The application uses the following Spring Batch metadata tables:
-- `BATCH_JOB_INSTANCE`
-- `BATCH_JOB_EXECUTION`
-- `BATCH_JOB_EXECUTION_PARAMS`
-- `BATCH_STEP_EXECUTION`
-- `BATCH_STEP_EXECUTION_CONTEXT`
-- `BATCH_JOB_EXECUTION_CONTEXT`
+### Database Configuration
+- Batch Size: Number of records to process in each database batch
+- Batch Versioning: Optimistic locking for concurrent updates
+- Ordered Operations: Optimized insert and update ordering
 
 ## API Endpoints
 
-### Data Ingestion
-```
-POST /api/dataingestion
-Content-Type: application/json
+### Reconciliation Endpoints
 
-{
-    "filepath": "/path/to/output/file.csv",
-    "totalrecords": 100000
-}
-```
-
-### Reconciliation
-```
+1. **Manual Reconciliation**
+```http
 POST /api/reconcile
 Content-Type: application/json
 
 {
-    "filepath": "/path/to/input/file.csv"
+    "filepath": "/path/to/input/file.csv",
+    "reportPath": "/path/to/output/report.xlsx",
+    "batchSize": 1000
 }
 ```
 
-## Project Structure
+2. **Batch Processing**
+```http
+POST /api/process-batch
+Content-Type: application/json
 
-```
-src/main/java/com/example/visa/recon/
-├── batch/                 # Spring Batch components
-├── config/               # Application configuration
-├── controller/           # REST controllers
-├── exception/           # Custom exceptions
-├── mapper/              # DTO-Entity mappers
-├── model/               # Data models
-│   ├── dto/            # Data Transfer Objects
-│   ├── entity/         # JPA entities
-│   └── enums/          # Enumerations
-├── repository/          # JPA repositories
-└── service/            # Business logic
+{
+    "filepath": "/path/to/input/file.csv",
+    "reportPath": "/path/to/output/report.xlsx",
+    "batchSize": 1000
+}
 ```
 
-## Building and Running
+3. **Two-Way Reconciliation**
+```http
+POST /api/reconcile/two-way
+Content-Type: application/json
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd visa-reconciliation
+{
+    "filepath": "/path/to/input/file.csv",
+    "reportPath": "/path/to/output/report.xlsx",
+    "batchSize": 1000
+}
 ```
 
-2. Build the project:
-```bash
-mvn clean install
-```
+## Performance Monitoring
 
-3. Run the application:
-```bash
-mvn spring-boot:run
-```
+The application provides detailed logging for monitoring performance:
+
+- Total records processed
+- Matched records count
+- Discrepancy counts
+- Processing time statistics
+- Error rates and types
 
 ## Error Handling
 
-The application includes comprehensive error handling with custom exceptions:
-- `FileProcessingException`: For file-related errors
-- `TransactionNotFoundException`: When a transaction is not found
-- `TransactionProcessingException`: For processing errors
-- `TransactionValidationException`: For validation errors
-- `DuplicateTransactionException`: For duplicate transactions
+- Comprehensive error logging
+- Transaction rollback on failures
+- Graceful error recovery
+- Detailed error reporting in Excel output
 
-## Logging
+## Security
 
-The application uses SLF4J with Logback for logging. Log levels can be configured in `application.yml`:
+- Input validation
+- SQL injection prevention
+- File access control
+- Secure configuration management
 
-```yaml
-logging:
-  level:
-    root: INFO
-    com.example.visa.recon: DEBUG
+## Best Practices
+
+1. **Performance Tuning**
+   - Adjust batch sizes based on available memory
+   - Configure thread pool based on system resources
+   - Monitor database performance metrics
+
+2. **Resource Management**
+   - Use appropriate batch sizes
+   - Monitor memory usage
+   - Configure proper logging levels
+
+3. **Error Handling**
+   - Implement proper error recovery
+   - Log all errors with context
+   - Generate detailed error reports
+
+## Development Setup
+
+1. Clone the repository
+2. Configure application.yml with your settings
+3. Build the project:
+```bash
+./mvnw clean install
+```
+4. Run the application:
+```bash
+./mvnw spring-boot:run
 ```
 
-## Contributing
+## Monitoring and Maintenance
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+1. **Performance Monitoring**
+   - Monitor thread pool usage
+   - Track database performance
+   - Watch memory consumption
 
-## License
+2. **Logging**
+   - Configure appropriate log levels
+   - Monitor error rates
+   - Track processing statistics
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+3. **Database Maintenance**
+   - Regular index optimization
+   - Monitor query performance
+   - Clean up old records
+
+## Future Improvements
+
+1. **Performance Enhancements**
+   - Implement Redis caching
+   - Add database partitioning
+   - Optimize file processing
+
+2. **Monitoring**
+   - Add performance metrics
+   - Implement health checks
+   - Add detailed logging
+
+3. **Features**
+   - Real-time reconciliation
+   - Advanced reporting
+   - Automated error recovery
+
+## Support
+
+For issues and feature requests, please create an issue in the repository.

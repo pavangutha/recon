@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
+import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -218,7 +218,60 @@ public class FileReader {
      * @param batchProcessor Consumer to process each batch of records
      * @throws RuntimeException if file cannot be read
      */
+    /**
+     * Processes a file in batches, grouping records for efficient processing.
+     * Uses buffered streaming and parallel processing for improved performance.
+     * 
+     * @param filePath Path to the file to process
+     * @param batchSize Size of each batch
+     * @param batchProcessor Consumer to process each batch of records
+     * @throws RuntimeException if file cannot be read
+     */
     public void processByBatch(String filePath, int batchSize, Consumer<List<VisaBase2Record>> batchProcessor) {
+        logger.info("Starting optimized batch processing of file: {} with batch size: {}", filePath, batchSize);
+        long startTime = System.currentTimeMillis();
+        final AtomicInteger recordCount = new AtomicInteger(0);
+        final AtomicInteger batchCount = new AtomicInteger(0);
+
+        try {
+            List<VisaBase2Record> batch = new ArrayList<>(batchSize);
+            
+            streamRecords(filePath)
+                .parallel()
+                .forEach(record -> {
+                    batch.add(record);
+                    recordCount.incrementAndGet();
+                    
+                    if (batch.size() >= batchSize) {
+                        processBatch(batch, batchProcessor, batchCount);
+                        batch.clear();
+                    }
+                });
+
+            // Process remaining records
+            if (!batch.isEmpty()) {
+                processBatch(batch, batchProcessor, batchCount);
+            }
+
+        } catch (Exception e) {
+            logger.error("Error processing file in batches: {}", filePath, e);
+            throw new RuntimeException("Error processing file: " + filePath, e);
+        }
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Completed batch processing: {} records in {} batches, took {} ms", 
+            recordCount.get(), batchCount.get(), (endTime - startTime));
+    }
+
+    private void processBatch(List<VisaBase2Record> batch, 
+                            Consumer<List<VisaBase2Record>> batchProcessor,
+                            AtomicInteger batchCount) {
+        List<VisaBase2Record> batchCopy = new ArrayList<>(batch);
+        batchProcessor.accept(batchCopy);
+        int count = batchCount.incrementAndGet();
+        logger.debug("Processed batch {} with {} records", count, batchCopy.size());
+    }
+    public void processByBatch1(String filePath, int batchSize, Consumer<List<VisaBase2Record>> batchProcessor) {
         logger.info("Starting batch processing of file: {} with batch size: {}", filePath, batchSize);
         long startTime = System.currentTimeMillis();
         final AtomicInteger batchCount = new AtomicInteger(0);

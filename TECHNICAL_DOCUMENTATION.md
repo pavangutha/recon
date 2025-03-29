@@ -1,4 +1,88 @@
 # Visa Transaction Reconciliation Application - Technical Documentation
+# Visa Transaction Reconciliation Application - Technical Documentation
+
+## 1. Overview
+
+The Visa Transaction Reconciliation Application is a Spring Boot-based system designed to reconcile transactions between a switch system and network (Visa/RuPay) transactions. The application provides REST APIs for data ingestion, reconciliation processing, and report generation.
+
+## 2. System Architecture
+
+### 2.1 Core Components
+
+- **Controllers**: 
+  - ReconciliationController: Handles reconciliation API endpoints
+  - Exposes endpoints for data ingestion, reconciliation, and report generation
+
+- **Services**:
+  - TwoWayBatchReconciliationService: Handles batch reconciliation processing
+  - CsvFileGenrationService: Manages CSV file operations
+  - ReconciliationJobService: Manages reconciliation jobs
+  - DiscrepancyReportService: Generates discrepancy reports
+
+- **Models**:
+  - VisaBase2Transaction: Entity for storing Visa transactions
+  - VisaBase2Record: DTO for transaction data transfer
+  - VisaBase2RecordEntity: Entity for Base2 record storage
+
+- **Configuration**:
+  - ThreadPoolConfig: Configures async execution with customizable thread pools
+  - Supports parallel processing with configurable core/max pool sizes
+
+### 2.2 Key Features
+
+1. **Data Ingestion**
+   - REST API endpoint for transaction data ingestion
+   - Support for CSV file processing
+   - Data validation and transformation
+
+2. **Two-Way Reconciliation**
+   - Batch processing with configurable batch sizes
+   - Parallel processing using thread pools
+   - Comprehensive matching algorithms
+
+3. **Report Generation**
+   - Detailed discrepancy reporting
+   - Excel report generation
+   - Configurable report formats and paths
+
+## 3. Data Model
+
+### 3.1 VisaBase2Transaction Entity
+
+Key fields:
+- id (Long): Primary key
+- transactionType (String)
+- transactionId (String, unique)
+- cardNumber (String)
+- amount (BigDecimal)
+- currencyCode (String)
+- transactionDate (LocalDateTime)
+
+### 3.2 VisaBase2Record Entity
+
+Additional fields:
+- stan (String)
+- responseCode (String)
+- accountType (String)
+- authorizationCode (String)
+- merchantId (String)
+- merchantCategoryCode (String)
+- terminalId (String)
+- cardExpiryDate (String)
+
+## 4. API Endpoints
+
+1. POST /dataingestion
+   - Processes incoming transaction data
+   - Accepts JSON payload with filepath and total records
+
+2. POST /reconcile
+   - Triggers reconciliation process
+   - Returns job ID for tracking
+
+3. POST /reconcile/two-way
+   - Performs two-way batch reconciliation
+   - Configurable batch size and report path
 
 ## 1. Overview
 

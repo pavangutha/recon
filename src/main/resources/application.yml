@@ -1,0 +1,37 @@
+# Reconciliation Configuration
+reconciliation:
+  file:
+    path: ${RECONCILIATION_FILE_PATH:/path/to/input/file.csv}
+  report:
+    path: ${RECONCILIATION_REPORT_PATH:/path/to/output/report.xlsx}
+  batch:
+    size: 1000
+  schedule:
+    enabled: true
+    cron: "0 0 1 * * ?"  # Run at 1 AM daily
+  thread-pool:
+    core-size: 4
+    max-size: 8
+    queue-capacity: 100
+
+# Database Configuration
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/visa_recon
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        jdbc:
+          batch_size: 100
+          batch_versioned_data: true
+        order_inserts: true
+        order_updates: true
+        generate_statistics: true 

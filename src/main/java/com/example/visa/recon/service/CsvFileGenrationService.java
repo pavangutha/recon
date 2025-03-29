@@ -67,8 +67,8 @@ public class CsvFileGenrationService {
             }
             
             // Write Trailer with total count
-            writer.write("TRAILER," + totalRecords); // You can customize the trailer
-            writer.newLine();
+           // writer.write("TRAILER," + totalRecords); // You can customize the trailer
+            writer.newLine(); 
         }
         return "CSV file generated successfully with " + totalRecords + " records";
     }
