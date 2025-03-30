@@ -155,12 +155,20 @@ public class TwoWayBatchReconciliationService {
         logger.info("Generating reconciliation report...");
         reportGenerator.generateReport(reportPath, fileToDbDiscrepancies, dbToFileDiscrepancies);
         
-        logger.info("Two-way reconciliation completed. Processed {} records, matched {} records. " +
-                   "Found {} file-to-DB discrepancies and {} DB-to-file discrepancies. " +
-                   "Total file records: {}, Total DB records: {}",
-            processedCount.get(), matchedCount.get(), 
-            fileToDbDiscrepancies.size(), dbToFileDiscrepancies.size(),
-            totalFileRecords.get(), totalDbRecords.get());
+        // Log detailed statistics
+        logger.info("Reconciliation Statistics:");
+        logger.info("Total file records: {}", totalFileRecords.get());
+        logger.info("Total DB records: {}", totalDbRecords.get());
+        logger.info("Records processed: {}", processedCount.get());
+        logger.info("Records matched: {}", matchedCount.get());
+        logger.info("File-to-DB discrepancies: {}", fileToDbDiscrepancies.size());
+        logger.info("DB-to-file discrepancies: {}", dbToFileDiscrepancies.size());
+        
+        // Validate counts
+        if (processedCount.get() != totalFileRecords.get()) {
+            logger.warn("Record count mismatch: Processed ({}) != Total File Records ({})", 
+                processedCount.get(), totalFileRecords.get());
+        }
     }
 
     private void processFileRecord(VisaBase2RecordEntity entity, 

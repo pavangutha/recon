@@ -1,16 +1,20 @@
 package com.example.visa.recon.mapper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.example.visa.recon.model.dto.VisaBase2Record;
 import com.example.visa.recon.model.entity.VisaBase2RecordEntity;
-
+/*
+ * This class is used to map the VisaBase2Record to VisaBase2RecordEntity and vice versa.
+ */
 @Component
 public class VisaBase2RecordMapper {
-
+    private static final Logger logger = LoggerFactory.getLogger(VisaBase2RecordMapper.class);
     public VisaBase2RecordEntity toEntity(VisaBase2Record dto) {
         if (dto == null) return null;
-        System.out.println("Stan: "+dto.getStan());
+        //System.out.println("Stan: "+dto.getStan());
 
         VisaBase2RecordEntity entity = new VisaBase2RecordEntity();
         try {

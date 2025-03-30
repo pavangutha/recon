@@ -1,224 +1,388 @@
 # Visa Reconciliation System
 
-A high-performance Spring Boot application for reconciling Visa transaction records between file and database systems.
+A robust Spring Boot application for performing two-way reconciliation between CSV files and database records for Visa transactions.
 
 ## Features
 
-- Two-way reconciliation between file and database records
-- Batch processing with optimized performance
-- Parallel processing with configurable thread pools
-- Automated scheduling of reconciliation jobs
-- Comprehensive discrepancy reporting in Excel format
-- Performance monitoring and statistics
-- Configurable batch sizes and processing parameters
+### 1. CSV File Generation
+- Generates test data CSV files with realistic transaction records
+- Supports parallel processing for high-performance generation
+- Configurable batch size and buffer size
+- Thread-safe random data generation
+- Predefined card numbers, merchant names, and cardholder names
+- Unique transaction IDs and RRNs (Reference Retrieval Numbers)
 
-## Performance Optimizations
+### 2. Two-Way Reconciliation
+- File to Database reconciliation
+- Database to File reconciliation
+- Batch processing for improved performance
+- Parallel processing support
+- Comprehensive discrepancy detection:
+  - Amount mismatches
+  - Response code mismatches
+  - Authorization code mismatches
+  - Transaction date mismatches
+  - Missing records
 
-### Parallel Processing
-- Parallel streams for file record processing
-- Concurrent database record processing
-- Thread pool configuration for async operations
-- Optimized batch processing with parallel streams
+### 3. Report Generation
+- Detailed Excel reports with multiple sheets:
+  - Summary statistics
+  - File to Database discrepancies
+  - Database to File discrepancies
+  - Detailed breakdown by discrepancy type
+- Color-coded cells for better visualization
+- Comprehensive statistics tracking
 
-### Database Optimizations
-- Hibernate batch processing
-- Ordered inserts and updates
-- Batch versioning
-- SQL query optimization
-- Statistics generation for monitoring
-
-### Memory Management
-- Thread-safe collections (ConcurrentHashMap, CopyOnWriteArrayList)
-- Optimized object creation
-- Efficient batch processing
-- Memory-mapped file support
+### 4. Scheduling Support
+- Configurable scheduling using cron expressions
+- Automatic reconciliation runs
+- Configurable file paths and batch sizes
+- Error handling and logging
 
 ## Technical Stack
 
-- Java 17
-- Spring Boot 3.x
-- Spring Batch
-- Spring Data JPA
-- MySQL 8.x
-- Apache POI (Excel reporting)
-- Lombok
-- SLF4J for logging
+- **Framework**: Spring Boot
+- **Database**: MySQL
+- **ORM**: Spring Data JPA
+- **File Processing**: Apache POI (Excel), CSV
+- **Build Tool**: Maven
+- **Java Version**: 17
+
+## Project Structure
+
+```
+src/main/java/com/example/visa/recon/
+├── config/
+│   ├── SchedulingConfig.java
+│   └── ThreadPoolConfig.java
+├── controller/
+│   └── ReconciliationController.java
+├── model/
+│   ├── dto/
+│   │   └── VisaBase2Record.java
+│   ├── entity/
+│   │   └── VisaBase2RecordEntity.java
+│   └── enums/
+│       └── TransactionType.java
+├── repository/
+│   └── VisaBase2RecordRepository.java
+├── service/
+│   ├── CsvFileGenrationService.java
+│   ├── ExcelReportGenerator.java
+│   └── TwoWayBatchReconciliationService.java
+└── scheduler/
+    └── ReconciliationScheduler.java
+```
 
 ## Configuration
 
 ### Application Properties
-
 ```yaml
-reconciliation:
-  file:
-    path: ${RECONCILIATION_FILE_PATH:/path/to/input/file.csv}
-  report:
-    path: ${RECONCILIATION_REPORT_PATH:/path/to/output/report.xlsx}
-  batch:
-    size: 1000
-  schedule:
-    enabled: true
-    cron: "0 0 1 * * ?"  # Run at 1 AM daily
-  thread-pool:
-    core-size: 4
-    max-size: 8
-    queue-capacity: 100
-
 spring:
   datasource:
     url: jdbc:mysql://localhost:3306/visa_recon
     username: root
     password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: update
+    show-sql: true
     properties:
       hibernate:
-        jdbc:
-          batch_size: 100
-          batch_versioned_data: true
-        order_inserts: true
-        order_updates: true
+        format_sql: true
+
+reconciliation:
+  file:
+    input-path: D:/input/visa_base2.csv
+    output-path: D:/output/reconciliation_report.xlsx
+  batch:
+    size: 1000
+  scheduler:
+    cron: "0 0 1 * * ?"  # Run at 1 AM daily
+    enabled: true
+
+thread-pool:
+  core-size: 4
+  max-size: 8
+  queue-capacity: 100
+  keep-alive-seconds: 60
 ```
-
-### Thread Pool Configuration
-- Core Pool Size: Number of threads to keep alive even when idle
-- Max Pool Size: Maximum number of threads to create
-- Queue Capacity: Size of the queue for holding tasks before they are executed
-
-### Database Configuration
-- Batch Size: Number of records to process in each database batch
-- Batch Versioning: Optimistic locking for concurrent updates
-- Ordered Operations: Optimized insert and update ordering
 
 ## API Endpoints
 
-### Reconciliation Endpoints
-
-1. **Manual Reconciliation**
+### 1. Generate CSV File
 ```http
-POST /api/reconcile
+POST /api/generate-csv
 Content-Type: application/json
 
 {
-    "filepath": "/path/to/input/file.csv",
-    "reportPath": "/path/to/output/report.xlsx",
-    "batchSize": 1000
+    "filepath": "D:/output/visa_base2.csv",
+    "totalRecords": 500
 }
 ```
 
-2. **Batch Processing**
-```http
-POST /api/process-batch
-Content-Type: application/json
-
-{
-    "filepath": "/path/to/input/file.csv",
-    "reportPath": "/path/to/output/report.xlsx",
-    "batchSize": 1000
-}
-```
-
-3. **Two-Way Reconciliation**
+### 2. Perform Two-Way Reconciliation
 ```http
 POST /api/reconcile/two-way
 Content-Type: application/json
 
 {
-    "filepath": "/path/to/input/file.csv",
-    "reportPath": "/path/to/output/report.xlsx",
+    "filepath": "D:/input/visa_base2.csv",
+    "reportPath": "D:/output/reconciliation_report.xlsx",
     "batchSize": 1000
 }
 ```
 
-## Performance Monitoring
+## Performance Optimizations
 
-The application provides detailed logging for monitoring performance:
+1. **Batch Processing**
+   - Configurable batch size for database operations
+   - Efficient memory usage with batch processing
+   - Reduced database round trips
 
-- Total records processed
-- Matched records count
-- Discrepancy counts
-- Processing time statistics
-- Error rates and types
+2. **Parallel Processing**
+   - Thread pool configuration for concurrent operations
+   - Parallel stream processing for record generation
+   - Thread-safe collections and counters
+
+3. **Memory Management**
+   - Buffered file operations
+   - Efficient string handling
+   - Proper resource cleanup
+
+4. **Database Optimization**
+   - Batch save operations
+   - Indexed queries
+   - Transaction management
 
 ## Error Handling
 
-- Comprehensive error logging
+- Comprehensive exception handling
+- Detailed error logging
 - Transaction rollback on failures
 - Graceful error recovery
-- Detailed error reporting in Excel output
 
-## Security
+## Logging
 
-- Input validation
-- SQL injection prevention
-- File access control
-- Secure configuration management
+- SLF4J with Logback
+- Different log levels for different environments
+- Detailed transaction logging
+- Performance metrics logging
 
-## Best Practices
+## Setup and Installation
 
-1. **Performance Tuning**
-   - Adjust batch sizes based on available memory
-   - Configure thread pool based on system resources
-   - Monitor database performance metrics
+1. **Prerequisites**
+   - Java 17 or higher
+   - MySQL 8.0 or higher
+   - Maven 3.6 or higher
 
-2. **Resource Management**
-   - Use appropriate batch sizes
-   - Monitor memory usage
-   - Configure proper logging levels
+2. **Database Setup**
+   ```sql
+   CREATE DATABASE visa_recon;
+   ```
 
-3. **Error Handling**
-   - Implement proper error recovery
-   - Log all errors with context
-   - Generate detailed error reports
+3. **Build and Run**
+   ```bash
+   mvn clean install
+   java -jar target/visa-recon-0.0.1-SNAPSHOT.jar
+   ```
 
-## Development Setup
+## Usage Examples
 
-1. Clone the repository
-2. Configure application.yml with your settings
-3. Build the project:
+### 1. Generate Test Data
 ```bash
-./mvnw clean install
-```
-4. Run the application:
-```bash
-./mvnw spring-boot:run
+curl -X POST http://localhost:8080/api/generate-csv \
+  -H "Content-Type: application/json" \
+  -d '{"filepath": "D:/output/visa_base2.csv", "totalRecords": 500}'
 ```
 
-## Monitoring and Maintenance
+### 2. Perform Reconciliation
+```bash
+curl -X POST http://localhost:8080/api/reconcile/two-way \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filepath": "D:/input/visa_base2.csv",
+    "reportPath": "D:/output/reconciliation_report.xlsx",
+    "batchSize": 1000
+  }'
+```
 
-1. **Performance Monitoring**
-   - Monitor thread pool usage
-   - Track database performance
-   - Watch memory consumption
+## Contributing
 
-2. **Logging**
-   - Configure appropriate log levels
-   - Monitor error rates
-   - Track processing statistics
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
-3. **Database Maintenance**
-   - Regular index optimization
-   - Monitor query performance
-   - Clean up old records
+## License
 
-## Future Improvements
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-1. **Performance Enhancements**
-   - Implement Redis caching
-   - Add database partitioning
-   - Optimize file processing
+## Redis Integration
 
-2. **Monitoring**
-   - Add performance metrics
-   - Implement health checks
-   - Add detailed logging
+### Use Cases for Redis in the Project
 
-3. **Features**
-   - Real-time reconciliation
-   - Advanced reporting
-   - Automated error recovery
+1. **Transaction ID Caching**
+   - Cache frequently accessed transaction IDs
+   - Reduce database load during reconciliation
+   - Store mapping between transaction IDs and their status
+   - Example: `transaction:{id} -> {status, lastUpdated}`
 
-## Support
+2. **Batch Processing State**
+   - Store batch processing progress
+   - Track completed batches
+   - Maintain reconciliation state
+   - Example: `batch:{batchId} -> {status, processedCount, totalCount}`
 
-For issues and feature requests, please create an issue in the repository.
+3. **Report Generation Caching**
+   - Cache generated reports temporarily
+   - Store report metadata
+   - Enable quick report retrieval
+   - Example: `report:{reportId} -> {metadata, status}`
+
+4. **Performance Metrics**
+   - Store real-time processing statistics
+   - Track reconciliation performance
+   - Monitor system health
+   - Example: `metrics:{date} -> {processedCount, errorCount, avgProcessingTime}`
+
+5. **Lock Management**
+   - Implement distributed locking for batch processing
+   - Prevent concurrent reconciliation runs
+   - Manage resource access
+   - Example: `lock:reconciliation:{batchId}`
+
+### Redis Configuration
+
+```yaml
+spring:
+  redis:
+    host: localhost
+    port: 6379
+    password: your_password
+    database: 0
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+```
+
+### Redis Implementation Examples
+
+1. **Transaction Caching Service**
+```java
+@Service
+public class TransactionCacheService {
+    private final RedisTemplate<String, String> redisTemplate;
+    private static final String TRANSACTION_KEY_PREFIX = "transaction:";
+    
+    public void cacheTransaction(String transactionId, String status) {
+        String key = TRANSACTION_KEY_PREFIX + transactionId;
+        redisTemplate.opsForValue().set(key, status, 24, TimeUnit.HOURS);
+    }
+    
+    public String getTransactionStatus(String transactionId) {
+        String key = TRANSACTION_KEY_PREFIX + transactionId;
+        return redisTemplate.opsForValue().get(key);
+    }
+}
+```
+
+2. **Batch Processing State Management**
+```java
+@Service
+public class BatchStateService {
+    private final RedisTemplate<String, String> redisTemplate;
+    private static final String BATCH_KEY_PREFIX = "batch:";
+    
+    public void updateBatchProgress(String batchId, int processed, int total) {
+        String key = BATCH_KEY_PREFIX + batchId;
+        Map<String, String> state = new HashMap<>();
+        state.put("processed", String.valueOf(processed));
+        state.put("total", String.valueOf(total));
+        state.put("status", "IN_PROGRESS");
+        redisTemplate.opsForHash().putAll(key, state);
+    }
+}
+```
+
+3. **Distributed Lock Implementation**
+```java
+@Service
+public class ReconciliationLockService {
+    private final RedisTemplate<String, String> redisTemplate;
+    private static final String LOCK_KEY_PREFIX = "lock:reconciliation:";
+    
+    public boolean acquireLock(String batchId, long timeoutSeconds) {
+        String key = LOCK_KEY_PREFIX + batchId;
+        return redisTemplate.opsForValue()
+            .setIfAbsent(key, "LOCKED", timeoutSeconds, TimeUnit.SECONDS);
+    }
+    
+    public void releaseLock(String batchId) {
+        String key = LOCK_KEY_PREFIX + batchId;
+        redisTemplate.delete(key);
+    }
+}
+```
+
+### Benefits of Redis Integration
+
+1. **Performance Improvements**
+   - Reduced database load
+   - Faster data retrieval
+   - Lower latency for frequently accessed data
+   - Improved response times
+
+2. **Scalability**
+   - Better handling of concurrent requests
+   - Distributed processing support
+   - Improved resource utilization
+   - Enhanced system reliability
+
+3. **State Management**
+   - Reliable state tracking
+   - Better error recovery
+   - Improved monitoring capabilities
+   - Enhanced debugging support
+
+4. **Resource Optimization**
+   - Reduced memory usage
+   - Better CPU utilization
+   - Optimized network traffic
+   - Improved system efficiency
+
+### Implementation Steps
+
+1. **Add Redis Dependencies**
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis</artifactId>
+</dependency>
+```
+
+2. **Configure Redis Connection**
+```java
+@Configuration
+public class RedisConfig {
+    @Bean
+    public RedisTemplate<String, String> redisTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, String> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(new StringRedisSerializer());
+        return template;
+    }
+}
+```
+
+3. **Integrate Redis Services**
+   - Add Redis services to existing components
+   - Implement caching strategies
+   - Add state management
+   - Configure monitoring
