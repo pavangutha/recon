@@ -386,3 +386,224 @@ public class RedisConfig {
    - Implement caching strategies
    - Add state management
    - Configure monitoring
+
+## Discrepancy Report Structure
+
+### 1. Summary Sheet
+```excel
+Sheet Name: Summary
+Columns:
+- Total Records Processed
+- Total Matched Records
+- Total Discrepancies
+- File to DB Discrepancies
+- DB to File Discrepancies
+- Processing Start Time
+- Processing End Time
+- Total Processing Duration
+- Status (Success/Failed)
+```
+
+### 2. File to Database Discrepancies
+```excel
+Sheet Name: FileToDB_Discrepancies
+Columns:
+- Transaction ID
+- File Amount
+- DB Amount
+- File Response Code
+- DB Response Code
+- File Auth Code
+- DB Auth Code
+- File Transaction Date
+- DB Transaction Date
+- Discrepancy Type
+- Status
+- Remarks
+```
+
+### 3. Database to File Discrepancies
+```excel
+Sheet Name: DBToFile_Discrepancies
+Columns:
+- Transaction ID
+- DB Amount
+- File Amount
+- DB Response Code
+- File Response Code
+- DB Auth Code
+- File Auth Code
+- DB Transaction Date
+- File Transaction Date
+- Discrepancy Type
+- Status
+- Remarks
+```
+
+### 4. Detailed Breakdown Sheet
+```excel
+Sheet Name: Detailed_Breakdown
+Columns:
+- Discrepancy Type
+- Count
+- Percentage
+- Example Transaction IDs
+- Impact Level (High/Medium/Low)
+```
+
+### Report Formatting
+
+1. **Color Coding**
+   - Green: Matched records
+   - Red: Amount mismatches
+   - Yellow: Response code mismatches
+   - Orange: Authorization code mismatches
+   - Blue: Date mismatches
+   - Purple: Missing records
+
+2. **Conditional Formatting**
+   - Amount differences > 10%: Bold red
+   - Critical response codes: Highlighted yellow
+   - Missing records: Highlighted purple
+   - Date differences > 1 day: Highlighted blue
+
+3. **Summary Statistics**
+   - Pie charts for discrepancy distribution
+   - Bar charts for trend analysis
+   - Line charts for processing timeline
+
+### Report Generation Code Example
+
+```java
+@Service
+public class ExcelReportGenerator {
+    private static final Logger logger = LoggerFactory.getLogger(ExcelReportGenerator.class);
+    
+    public void generateReport(String reportPath, ReconciliationResult result) {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            // Create Summary Sheet
+            Sheet summarySheet = workbook.createSheet("Summary");
+            createSummarySheet(summarySheet, result);
+            
+            // Create File to DB Discrepancies Sheet
+            Sheet fileToDBSheet = workbook.createSheet("FileToDB_Discrepancies");
+            createFileToDBSheet(fileToDBSheet, result.getFileToDBDiscrepancies());
+            
+            // Create DB to File Discrepancies Sheet
+            Sheet dbToFileSheet = workbook.createSheet("DBToFile_Discrepancies");
+            createDBToFileSheet(dbToFileSheet, result.getDBToFileDiscrepancies());
+            
+            // Create Detailed Breakdown Sheet
+            Sheet breakdownSheet = workbook.createSheet("Detailed_Breakdown");
+            createBreakdownSheet(breakdownSheet, result);
+            
+            // Apply formatting
+            applyFormatting(workbook);
+            
+            // Save workbook
+            try (FileOutputStream fileOut = new FileOutputStream(reportPath)) {
+                workbook.write(fileOut);
+            }
+            
+            logger.info("Report generated successfully at: {}", reportPath);
+        } catch (IOException e) {
+            logger.error("Error generating report: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to generate report", e);
+        }
+    }
+    
+    private void createSummarySheet(Sheet sheet, ReconciliationResult result) {
+        Row headerRow = sheet.createRow(0);
+        headerRow.createCell(0).setCellValue("Metric");
+        headerRow.createCell(1).setCellValue("Value");
+        
+        int rowNum = 1;
+        createSummaryRow(sheet, rowNum++, "Total Records Processed", result.getTotalRecords());
+        createSummaryRow(sheet, rowNum++, "Total Matched Records", result.getMatchedRecords());
+        createSummaryRow(sheet, rowNum++, "Total Discrepancies", result.getTotalDiscrepancies());
+        createSummaryRow(sheet, rowNum++, "File to DB Discrepancies", result.getFileToDBDiscrepancies().size());
+        createSummaryRow(sheet, rowNum++, "DB to File Discrepancies", result.getDBToFileDiscrepancies().size());
+        createSummaryRow(sheet, rowNum++, "Processing Start Time", result.getStartTime());
+        createSummaryRow(sheet, rowNum++, "Processing End Time", result.getEndTime());
+        createSummaryRow(sheet, rowNum++, "Total Duration", result.getDuration());
+        createSummaryRow(sheet, rowNum++, "Status", result.getStatus());
+    }
+    
+    private void createFileToDBSheet(Sheet sheet, List<Discrepancy> discrepancies) {
+        // Create header row
+        Row headerRow = sheet.createRow(0);
+        String[] headers = {"Transaction ID", "File Amount", "DB Amount", "File Response Code", 
+                          "DB Response Code", "File Auth Code", "DB Auth Code", 
+                          "File Transaction Date", "DB Transaction Date", 
+                          "Discrepancy Type", "Status", "Remarks"};
+        
+        for (int i = 0; i < headers.length; i++) {
+            headerRow.createCell(i).setCellValue(headers[i]);
+        }
+        
+        // Create data rows
+        int rowNum = 1;
+        for (Discrepancy discrepancy : discrepancies) {
+            Row row = sheet.createRow(rowNum++);
+            row.createCell(0).setCellValue(discrepancy.getTransactionId());
+            row.createCell(1).setCellValue(discrepancy.getFileAmount());
+            row.createCell(2).setCellValue(discrepancy.getDbAmount());
+            // ... set other cells
+        }
+    }
+    
+    private void applyFormatting(Workbook workbook) {
+        // Apply conditional formatting
+        for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+            Sheet sheet = workbook.getSheetAt(i);
+            applyConditionalFormatting(sheet);
+        }
+    }
+}
+```
+
+### Report Features
+
+1. **Interactive Elements**
+   - Filterable columns
+   - Sortable data
+   - Hidden columns for detailed view
+   - Data validation
+
+2. **Visual Elements**
+   - Charts and graphs
+   - Color-coded cells
+   - Icons for status
+   - Progress bars
+
+3. **Data Organization**
+   - Grouped by discrepancy type
+   - Sorted by severity
+   - Filtered by date range
+   - Aggregated statistics
+
+4. **Export Options**
+   - Excel format
+   - CSV format
+   - PDF format
+   - Custom formats
+
+### Report Usage
+
+1. **Analysis**
+   - Identify patterns in discrepancies
+   - Track reconciliation trends
+   - Monitor system performance
+   - Generate insights
+
+2. **Audit Trail**
+   - Record reconciliation history
+   - Track resolution status
+   - Maintain compliance records
+   - Support investigations
+
+3. **Performance Monitoring**
+   - Track processing times
+   - Monitor error rates
+   - Analyze system efficiency
+   - Identify bottlenecks

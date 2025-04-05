@@ -17,11 +17,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import java.time.LocalDateTime; 
 import com.example.visa.recon.model.dto.VisaBase2Record;
 import com.example.visa.recon.model.entity.VisaBase2RecordEntity;
 import com.example.visa.recon.repository.VisaBase2RecordRepository;
 import com.example.visa.recon.mapper.VisaBase2RecordMapper;
+import com.example.visa.recon.model.Discrepancy;
 
 @Service
 public class TwoWayBatchReconciliationService {
@@ -59,7 +60,7 @@ public class TwoWayBatchReconciliationService {
         List<Discrepancy> fileToDbDiscrepancies = new CopyOnWriteArrayList<>();
         List<Discrepancy> dbToFileDiscrepancies = new CopyOnWriteArrayList<>();
         Set<String> fileTransactionIds = ConcurrentHashMap.newKeySet();
-        
+        LocalDateTime startTime = LocalDateTime.now(); 
         AtomicInteger processedCount = new AtomicInteger(0);
         AtomicInteger matchedCount = new AtomicInteger(0);
         AtomicInteger totalFileRecords = new AtomicInteger(0);
@@ -150,10 +151,13 @@ public class TwoWayBatchReconciliationService {
                     ));
                 }
             });
-
+        LocalDateTime endTime = LocalDateTime.now();  
+        //long processingTime = endTime - startTime;
+        //logger.info("Total processing time: {} seconds", processingTime / 1000);
         // Generate report asynchronously
         logger.info("Generating reconciliation report...");
-        reportGenerator.generateReport(reportPath, fileToDbDiscrepancies, dbToFileDiscrepancies);
+        reportGenerator.generateReport(reportPath, fileToDbDiscrepancies, dbToFileDiscrepancies, 
+            totalDbRecords.get(), totalFileRecords.get(), startTime, endTime);  
         
         // Log detailed statistics
         logger.info("Reconciliation Statistics:");
@@ -196,7 +200,14 @@ public class TwoWayBatchReconciliationService {
             } else if (!existingEntity.getTransactionDate().equals(entity.getTransactionDate())) {
                 hasDiscrepancy = true;
                 discrepancyType = "Transaction Date Mismatch";
+            } else if (!existingEntity.getRrn().equals(entity.getRrn())) {
+                hasDiscrepancy = true;
+                discrepancyType = "RRN Mismatch";
+            } else if (!existingEntity.getTransactionType().equals(entity.getTransactionType())) {
+                hasDiscrepancy = true;
+                discrepancyType = "Transaction Type Mismatch";
             }
+            //duplicate check 
 
             if (hasDiscrepancy) {
                 discrepancies.add(new Discrepancy(
